@@ -4,25 +4,38 @@ Turn a folder of scanned images into a cleaned, consistently sized PDF.
 
 ## Quick Start
 
-Clone the repository, install it, and run the CLI:
+Install directly from GitHub:
 
 ```bash
-git clone <REPOSITORY_URL>
-cd image-to-pdf
+python3 -m pip install "git+https://github.com/young-hwang/scan2pdf.git"
+scan2pdf ./scans ./output/book.pdf
+```
+
+If you prefer an isolated CLI install:
+
+```bash
+pipx install "git+https://github.com/young-hwang/scan2pdf.git"
+```
+
+If you want to clone the repository and install from source:
+
+```bash
+git clone https://github.com/young-hwang/scan2pdf.git
+cd scan2pdf
 python3 -m pip install .
 scan2pdf ./scans ./output/book.pdf
 ```
 
-If you want deskew support, install the optional OpenCV dependency:
+If you want deskew support after cloning the repository:
 
 ```bash
 python3 -m pip install ".[deskew]"
 ```
 
-You can also install the tool in an isolated CLI environment:
+If you want deskew support from GitHub without cloning:
 
 ```bash
-pipx install .
+python3 -m pip install "scan2pdf[deskew] @ git+https://github.com/young-hwang/scan2pdf.git"
 ```
 
 ## What You Get
