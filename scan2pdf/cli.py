@@ -269,16 +269,14 @@ def process_directory(args: argparse.Namespace) -> list[Image.Image]:
     Image, _ = require_pillow()
     files = iter_image_files(args.input_dir)
     if not files:
+        supported = ", ".join(sorted(SUPPORTED_EXTENSIONS))
         raise SystemExit(
-            f"No supported image files were found in {args.input_dir}. "
-            f"Supported extensions: {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+            f"No supported image files found in {args.input_dir} "
+            f"(supported: {supported})."
         )
 
     canvas_size = page_size_to_pixels(args.page_size, args.dpi, args.orientation)
     prepared_pages: list[PreparedPage] = []
-    save_dir = args.save_normalized_dir
-    if save_dir:
-        save_dir.mkdir(parents=True, exist_ok=True)
 
     for file_path in files:
         with Image.open(file_path) as image:
@@ -287,54 +285,57 @@ def process_directory(args: argparse.Namespace) -> list[Image.Image]:
                 orientation=args.orientation,
                 deskew=args.deskew,
             )
-        cropped = crop_to_content(
-            prepared,
-            trim_margins=args.trim_margins,
-            background_threshold=args.background_threshold,
-        )
-        prepared_pages.append(
-            PreparedPage(
-                source_path=file_path,
-                image=cropped,
-                cropped_size=cropped.size,
+            cropped = crop_to_content(
+                prepared,
+                trim_margins=args.trim_margins,
+                background_threshold=args.background_threshold,
             )
-        )
+            prepared_pages.append(
+                PreparedPage(
+                    source_path=file_path,
+                    image=cropped,
+                    cropped_size=cropped.size,
+                )
+            )
 
     shared_scale: float | None = None
-    if canvas_size is not None and args.trim_margins and args.global_scale:
+    if args.global_scale and args.trim_margins and canvas_size is not None:
         shared_scale = compute_uniform_scale(
             [page.cropped_size for page in prepared_pages],
             canvas_size,
         )
 
     normalized_pages: list[Image.Image] = []
-    for index, page in enumerate(prepared_pages, start=1):
-        normalized = render_page(
+    for page in prepared_pages:
+        rendered = render_page(
             page.image,
             canvas_size=canvas_size,
             grayscale=args.grayscale,
             shared_scale=shared_scale,
         )
-        normalized_pages.append(normalized)
+        normalized_pages.append(rendered)
 
-        if save_dir:
-            suffix = ".png" if normalized.mode == "RGBA" else ".jpg"
-            output_name = f"{index:04d}_{page.source_path.stem}{suffix}"
-            normalized.save(save_dir / output_name, quality=95)
+    if args.save_normalized_dir is not None:
+        args.save_normalized_dir.mkdir(parents=True, exist_ok=True)
+        for index, (page, normalized) in enumerate(
+            zip(prepared_pages, normalized_pages),
+            start=1,
+        ):
+            suffix = page.source_path.suffix.lower() or ".png"
+            output_path = args.save_normalized_dir / f"{index:04d}{suffix}"
+            normalized.save(output_path)
 
     return normalized_pages
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    try:
-        validate_args(args)
-    except RuntimeError as exc:
-        raise SystemExit(str(exc)) from exc
-    pages = process_directory(args)
-    save_pdf(pages, args.output_pdf, dpi=args.dpi)
+    validate_args(args)
+    images = process_directory(args)
+    save_pdf(images, args.output_pdf, args.dpi)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main(sys.argv[1:]))
+

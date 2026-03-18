@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from scripts.imaging.core import (
+from scan2pdf.core import (
     CanvasSize,
     compute_uniform_scale,
     fit_with_padding,

@@ -1,0 +1,2 @@
+"""scan2pdf package."""
+

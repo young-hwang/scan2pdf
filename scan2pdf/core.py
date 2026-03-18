@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -123,3 +122,4 @@ def scale_dimensions(
         max(1, int(round(width * scale))),
         max(1, int(round(height * scale))),
     )
+
