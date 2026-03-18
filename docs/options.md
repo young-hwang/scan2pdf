@@ -7,6 +7,7 @@ Application settings are provided through CLI arguments.
 - `output_pdf`: Destination path for the generated PDF file.
 - `--page-size`: Output canvas preset. Use `A4`, `A5`, or `LETTER` for a fixed paper size, or `ORIGINAL` to keep each page at its processed image size.
 - `--dpi`: DPI used when converting paper-size presets into pixel dimensions. Higher values create larger output pages and usually increase PDF size.
+- `--jpeg-quality`: JPEG quality used when embedding page images in the PDF. Lower values reduce file size at the cost of more compression artifacts.
 - `--orientation`: Coarse page orientation target. Use `portrait` or `landscape` to normalize all pages to one direction, or `preserve` to keep the source orientation.
 - `--grayscale`: Converts output pages to grayscale before writing the PDF. This is useful for reducing size on text-heavy scans.
 - `--deskew` and `--no-deskew`: Enables or disables OpenCV-based skew correction for slightly rotated text lines.

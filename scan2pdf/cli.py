@@ -185,17 +185,27 @@ def render_page(
     return canvas
 
 
-def save_pdf(images: Sequence[Image.Image], output_path: Path, dpi: int) -> None:
+def save_pdf(
+    images: Sequence[Image.Image],
+    output_path: Path,
+    dpi: int,
+    jpeg_quality: int,
+) -> None:
     if not images:
         raise ValueError("No images were provided for PDF export.")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    first, *rest = [image.convert("RGB") for image in images]
+    normalized_images = [
+        image if image.mode in {"1", "L", "RGB"} else image.convert("RGB")
+        for image in images
+    ]
+    first, *rest = normalized_images
     first.save(
         output_path,
         save_all=True,
         append_images=rest,
         resolution=dpi,
+        quality=jpeg_quality,
     )
 
 
@@ -222,6 +232,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=300,
         help="Target DPI used for page-size presets. Defaults to 300.",
+    )
+    parser.add_argument(
+        "--jpeg-quality",
+        type=int,
+        default=85,
+        help="JPEG quality used when embedding PDF page images. Defaults to 85.",
     )
     parser.add_argument(
         "--orientation",
@@ -271,6 +287,8 @@ def validate_args(args: argparse.Namespace) -> None:
         raise SystemExit(f"Input directory does not exist: {args.input_dir}")
     if args.dpi <= 0:
         raise SystemExit("--dpi must be a positive integer.")
+    if args.jpeg_quality < 1 or args.jpeg_quality > 100:
+        raise SystemExit("--jpeg-quality must be between 1 and 100.")
     if args.background_threshold < 1 or args.background_threshold > 255:
         raise SystemExit("--background-threshold must be between 1 and 255.")
     if args.deskew:
@@ -347,7 +365,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     validate_args(args)
     images = process_directory(args)
-    save_pdf(images, args.output_pdf, args.dpi)
+    save_pdf(images, args.output_pdf, args.dpi, args.jpeg_quality)
     return 0
 
 

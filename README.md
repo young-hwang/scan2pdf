@@ -48,6 +48,7 @@ python3 -m pip install "scan2pdf[deskew] @ git+https://github.com/young-hwang/sc
 - shared scaling across trimmed pages for stable content size
 - fixed page-size canvas with centered white padding
 - grayscale export option
+- configurable JPEG quality for PDF page embedding
 - deterministic multi-page PDF output
 
 ## Basic Usage
@@ -79,7 +80,8 @@ scan2pdf ./scans ./output/book.pdf \
   --page-size LETTER \
   --dpi 300 \
   --orientation portrait \
-  --grayscale
+  --grayscale \
+  --jpeg-quality 75
 ```
 
 Trim white borders and keep a shared scale across pages:

@@ -21,6 +21,7 @@ scan2pdf ./scans ./output/book.pdf
 scan2pdf ./scans ./output/book.pdf \
   --page-size LETTER \
   --dpi 300 \
+  --jpeg-quality 75 \
   --orientation portrait \
   --grayscale \
   --deskew \
@@ -51,7 +52,8 @@ See [Options Reference](options.md).
 ```bash
 scan2pdf ./scans ./output/book.pdf \
   --page-size A4 \
-  --dpi 300 \
+  --dpi 200 \
+  --jpeg-quality 80 \
   --orientation portrait \
   --trim-margins \
   --background-threshold 245 \

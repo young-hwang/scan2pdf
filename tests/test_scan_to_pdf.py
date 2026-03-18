@@ -13,6 +13,7 @@ from scan2pdf.core import (
     scale_dimensions,
     should_rotate_for_orientation,
 )
+from scan2pdf.cli import parse_args
 
 
 class NaturalSortTests(unittest.TestCase):
@@ -66,6 +67,18 @@ class GeometryTests(unittest.TestCase):
 
     def test_scale_dimensions_applies_shared_scale(self) -> None:
         self.assertEqual(scale_dimensions((900, 700), 1.2), (1080, 840))
+
+
+class CliTests(unittest.TestCase):
+    def test_parse_args_uses_default_jpeg_quality(self) -> None:
+        args = parse_args(["./scans", "./output/book.pdf"])
+        self.assertEqual(args.jpeg_quality, 85)
+
+    def test_parse_args_accepts_custom_jpeg_quality(self) -> None:
+        args = parse_args(
+            ["./scans", "./output/book.pdf", "--jpeg-quality", "72"]
+        )
+        self.assertEqual(args.jpeg_quality, 72)
 
 
 if __name__ == "__main__":
