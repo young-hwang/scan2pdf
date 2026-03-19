@@ -38,12 +38,16 @@ If you want deskew support from GitHub without cloning:
 python3 -m pip install "scan2pdf[deskew] @ git+https://github.com/young-hwang/scan2pdf.git"
 ```
 
+If you want searchable OCR PDFs, also install system Tesseract with the language data you need.
+For Korean and English OCR, install `kor` and `eng` trained data for your Tesseract package.
+
 ## What You Get
 
 - natural filename ordering
 - EXIF-aware rotation handling
 - portrait or landscape coarse orientation normalization
 - optional OpenCV-based deskew
+- optional Tesseract-based OCR for searchable PDFs
 - optional white-margin trimming after rotation correction
 - shared scaling across trimmed pages for stable content size
 - fixed page-size canvas with centered white padding
@@ -98,6 +102,14 @@ Save normalized page images for inspection:
 ```bash
 scan2pdf ./scans ./output/book.pdf \
   --save-normalized-dir ./output/normalized
+```
+
+Generate a searchable OCR PDF:
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --ocr \
+  --ocr-lang kor+eng
 ```
 
 ## Development

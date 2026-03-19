@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import argparse
 import math
+import shutil
+import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
@@ -48,6 +51,33 @@ def require_cv2():
             "pip install opencv-python"
         ) from exc
     return cv2
+
+
+def require_pypdf():
+    try:
+        from pypdf import PdfReader, PdfWriter
+    except ImportError as exc:  # pragma: no cover - exercised in runtime only
+        raise RuntimeError(
+            "OCR PDF export requires pypdf. Install it with: pip install pypdf"
+        ) from exc
+    return PdfReader, PdfWriter
+
+
+def command_exists(command: str) -> bool:
+    command_path = Path(command).expanduser()
+    if command_path.parent != Path("."):
+        return command_path.is_file()
+    return shutil.which(command) is not None
+
+
+def require_tesseract(command: str):
+    if not command_exists(command):
+        raise RuntimeError(
+            "OCR requested but Tesseract is not installed or not on PATH. "
+            "Install Tesseract and the desired language data, or pass "
+            "--tesseract-cmd with the executable path."
+        )
+    return command
 
 
 @dataclass
@@ -209,6 +239,77 @@ def save_pdf(
     )
 
 
+def run_tesseract_ocr(
+    image_path: Path,
+    output_base: Path,
+    *,
+    language: str,
+    tesseract_cmd: str,
+) -> Path:
+    command = [
+        tesseract_cmd,
+        str(image_path),
+        str(output_base),
+        "-l",
+        language,
+        "pdf",
+    ]
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        stderr = exc.stderr.strip() if exc.stderr else "Unknown Tesseract error."
+        raise RuntimeError(
+            f"Tesseract OCR failed for {image_path.name}: {stderr}"
+        ) from exc
+
+    pdf_path = output_base.with_suffix(".pdf")
+    if not pdf_path.exists():
+        raise RuntimeError(
+            f"Tesseract OCR did not produce a PDF for {image_path.name}."
+        )
+    return pdf_path
+
+
+def save_pdf_with_ocr(
+    images: Sequence[Image.Image],
+    output_path: Path,
+    *,
+    language: str,
+    tesseract_cmd: str,
+) -> None:
+    if not images:
+        raise ValueError("No images were provided for OCR PDF export.")
+
+    PdfReader, PdfWriter = require_pypdf()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(prefix="scan2pdf-ocr-") as tmp:
+        temp_dir = Path(tmp)
+        writer = PdfWriter()
+
+        for index, image in enumerate(images, start=1):
+            image_path = temp_dir / f"page-{index:04d}.png"
+            output_base = temp_dir / f"page-{index:04d}"
+            image.save(image_path, format="PNG")
+            page_pdf = run_tesseract_ocr(
+                image_path,
+                output_base,
+                language=language,
+                tesseract_cmd=tesseract_cmd,
+            )
+            reader = PdfReader(str(page_pdf))
+            for page in reader.pages:
+                writer.add_page(page)
+
+        with output_path.open("wb") as handle:
+            writer.write(handle)
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="scan2pdf",
@@ -278,6 +379,21 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=Path,
         help="Optional directory to save normalized pages for inspection.",
     )
+    parser.add_argument(
+        "--ocr",
+        action="store_true",
+        help="Run Tesseract OCR and generate a searchable PDF with a text layer.",
+    )
+    parser.add_argument(
+        "--ocr-lang",
+        default="kor+eng",
+        help="Tesseract OCR language(s). Defaults to kor+eng.",
+    )
+    parser.add_argument(
+        "--tesseract-cmd",
+        default="tesseract",
+        help="Tesseract executable name or path. Defaults to tesseract.",
+    )
     return parser.parse_args(argv)
 
 
@@ -291,9 +407,17 @@ def validate_args(args: argparse.Namespace) -> None:
         raise SystemExit("--jpeg-quality must be between 1 and 100.")
     if args.background_threshold < 1 or args.background_threshold > 255:
         raise SystemExit("--background-threshold must be between 1 and 255.")
+    if not args.ocr_lang.strip():
+        raise SystemExit("--ocr-lang must not be empty.")
     if args.deskew:
         try:
             require_cv2()
+        except RuntimeError as exc:
+            raise SystemExit(str(exc)) from exc
+    if args.ocr:
+        try:
+            require_tesseract(args.tesseract_cmd)
+            require_pypdf()
         except RuntimeError as exc:
             raise SystemExit(str(exc)) from exc
 
@@ -365,7 +489,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     validate_args(args)
     images = process_directory(args)
-    save_pdf(images, args.output_pdf, args.dpi, args.jpeg_quality)
+    if args.ocr:
+        save_pdf_with_ocr(
+            images,
+            args.output_pdf,
+            language=args.ocr_lang,
+            tesseract_cmd=args.tesseract_cmd,
+        )
+    else:
+        save_pdf(images, args.output_pdf, args.dpi, args.jpeg_quality)
     return 0
 
 

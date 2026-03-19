@@ -43,6 +43,22 @@ scan2pdf ./scans ./output/book.pdf \
 scan2pdf ./scans ./output/book.pdf --no-deskew
 ```
 
+## Searchable OCR PDF
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --ocr \
+  --ocr-lang kor+eng
+```
+
+If Tesseract is not on your default `PATH`, specify it directly:
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --ocr \
+  --tesseract-cmd /opt/homebrew/bin/tesseract
+```
+
 ## Configuration
 
 See [Options Reference](options.md).

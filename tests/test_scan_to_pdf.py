@@ -1,6 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from scan2pdf.core import (
     CanvasSize,
@@ -13,7 +14,12 @@ from scan2pdf.core import (
     scale_dimensions,
     should_rotate_for_orientation,
 )
-from scan2pdf.cli import parse_args
+from scan2pdf.cli import (
+    command_exists,
+    parse_args,
+    run_tesseract_ocr,
+    validate_args,
+)
 
 
 class NaturalSortTests(unittest.TestCase):
@@ -79,6 +85,105 @@ class CliTests(unittest.TestCase):
             ["./scans", "./output/book.pdf", "--jpeg-quality", "72"]
         )
         self.assertEqual(args.jpeg_quality, 72)
+
+    def test_parse_args_uses_default_ocr_language(self) -> None:
+        args = parse_args(["./scans", "./output/book.pdf", "--ocr"])
+        self.assertTrue(args.ocr)
+        self.assertEqual(args.ocr_lang, "kor+eng")
+
+    def test_parse_args_accepts_custom_tesseract_command(self) -> None:
+        args = parse_args(
+            [
+                "./scans",
+                "./output/book.pdf",
+                "--ocr",
+                "--ocr-lang",
+                "eng",
+                "--tesseract-cmd",
+                "/opt/homebrew/bin/tesseract",
+            ]
+        )
+        self.assertEqual(args.ocr_lang, "eng")
+        self.assertEqual(args.tesseract_cmd, "/opt/homebrew/bin/tesseract")
+
+    def test_validate_args_rejects_empty_ocr_language(self) -> None:
+        with TemporaryDirectory() as tmp:
+            input_dir = Path(tmp) / "scans"
+            input_dir.mkdir()
+            args = parse_args(
+                [str(input_dir), "./output/book.pdf", "--ocr-lang", " "]
+            )
+            with self.assertRaises(SystemExit) as exc:
+                validate_args(args)
+            self.assertEqual(str(exc.exception), "--ocr-lang must not be empty.")
+
+    @patch("scan2pdf.cli.require_pillow")
+    @patch("scan2pdf.cli.require_cv2")
+    def test_validate_args_allows_non_ocr_without_tesseract(
+        self,
+        _require_cv2,
+        _require_pillow,
+    ) -> None:
+        with TemporaryDirectory() as tmp:
+            input_dir = Path(tmp) / "scans"
+            input_dir.mkdir()
+            args = parse_args([str(input_dir), "./output/book.pdf"])
+            validate_args(args)
+
+    @patch("scan2pdf.cli.require_pillow")
+    @patch("scan2pdf.cli.require_cv2")
+    def test_validate_args_requires_tesseract_for_ocr(
+        self,
+        _require_cv2,
+        _require_pillow,
+    ) -> None:
+        with TemporaryDirectory() as tmp:
+            input_dir = Path(tmp) / "scans"
+            input_dir.mkdir()
+            args = parse_args([str(input_dir), "./output/book.pdf", "--ocr"])
+            with patch("scan2pdf.cli.command_exists", return_value=False):
+                with self.assertRaises(SystemExit) as exc:
+                    validate_args(args)
+            self.assertIn("Tesseract", str(exc.exception))
+
+
+class OcrTests(unittest.TestCase):
+    def test_command_exists_detects_absolute_path(self) -> None:
+        with TemporaryDirectory() as tmp:
+            command_path = Path(tmp) / "tesseract"
+            command_path.write_text("#!/bin/sh\n")
+            self.assertTrue(command_exists(str(command_path)))
+
+    @patch("scan2pdf.cli.subprocess.run")
+    def test_run_tesseract_ocr_builds_expected_command(self, mock_run) -> None:
+        with TemporaryDirectory() as tmp:
+            temp_dir = Path(tmp)
+            image_path = temp_dir / "page.png"
+            image_path.write_bytes(b"png")
+            output_base = temp_dir / "page"
+            output_base.with_suffix(".pdf").write_bytes(b"%PDF-1.4\n")
+
+            pdf_path = run_tesseract_ocr(
+                image_path,
+                output_base,
+                language="kor+eng",
+                tesseract_cmd="tesseract",
+            )
+
+            self.assertEqual(pdf_path, output_base.with_suffix(".pdf"))
+            mock_run.assert_called_once_with(
+                [
+                    "tesseract",
+                    str(image_path),
+                    str(output_base),
+                    "-l",
+                    "kor+eng",
+                    "pdf",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
 
 
 if __name__ == "__main__":

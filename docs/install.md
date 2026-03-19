@@ -58,6 +58,25 @@ If you already cloned the repository:
 python3 -m pip install ".[deskew]"
 ```
 
+## OCR Requirements For Searchable PDFs
+
+`--ocr` requires:
+
+- system `tesseract`
+- installed Tesseract language data such as `kor` and `eng`
+
+Example on Homebrew:
+
+```bash
+brew install tesseract tesseract-lang
+```
+
+Then verify:
+
+```bash
+tesseract --list-langs
+```
+
 ## First Run
 
 ```bash
