@@ -37,6 +37,18 @@ scan2pdf ./scans ./output/book.pdf \
   --global-scale
 ```
 
+## Top-Aligned Document Placement
+
+`scan2pdf` now uses `--content-align top-center` by default so trimmed pages stay aligned to the top of the canvas instead of drifting vertically.
+
+To restore classic centered placement:
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --trim-margins \
+  --content-align center
+```
+
 ## Without OpenCV Deskew
 
 ```bash

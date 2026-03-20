@@ -49,6 +49,7 @@ For Korean and English OCR, install `kor` and `eng` trained data for your Tesser
 - optional OpenCV-based deskew
 - optional Tesseract-based OCR for searchable PDFs
 - optional white-margin trimming after rotation correction
+- top-centered page placement for more consistent document alignment
 - shared scaling across trimmed pages for stable content size
 - fixed page-size canvas with centered white padding
 - grayscale export option
@@ -95,6 +96,14 @@ scan2pdf ./scans ./output/book.pdf \
   --trim-margins \
   --background-threshold 245 \
   --global-scale
+```
+
+Force classic centered placement instead of the default top-centered layout:
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --trim-margins \
+  --content-align center
 ```
 
 Save normalized page images for inspection:

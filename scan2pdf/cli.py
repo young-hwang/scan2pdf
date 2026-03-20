@@ -146,12 +146,59 @@ def detect_content_box(
     *,
     background_threshold: int,
 ) -> tuple[int, int, int, int] | None:
+    try:
+        import numpy as np  # type: ignore
+    except ImportError:
+        grayscale = image.convert("L")
+        mask = grayscale.point(
+            lambda value: 255 if value < background_threshold else 0,
+            mode="1",
+        )
+        return mask.getbbox()
+
     grayscale = image.convert("L")
-    mask = grayscale.point(
-        lambda value: 255 if value < background_threshold else 0,
-        mode="1",
-    )
-    return mask.getbbox()
+    values = np.array(grayscale)
+    mask = values < background_threshold
+    if not mask.any():
+        return None
+
+    height, width = mask.shape
+    edge_margin_x = max(10, width // 200)
+    edge_margin_y = max(10, height // 200)
+    analysis_mask = mask.copy()
+    analysis_mask[:edge_margin_y, :] = False
+    analysis_mask[-edge_margin_y:, :] = False
+    analysis_mask[:, :edge_margin_x] = False
+    analysis_mask[:, -edge_margin_x:] = False
+
+    if not analysis_mask.any():
+        analysis_mask = mask
+
+    row_threshold = max(8, width // 100)
+    col_threshold = max(8, height // 100)
+    active_rows = np.flatnonzero(analysis_mask.sum(axis=1) >= row_threshold)
+    active_cols = np.flatnonzero(analysis_mask.sum(axis=0) >= col_threshold)
+
+    if len(active_rows) == 0 or len(active_cols) == 0:
+        active_rows = np.flatnonzero(mask.sum(axis=1) >= row_threshold)
+        active_cols = np.flatnonzero(mask.sum(axis=0) >= col_threshold)
+
+    if len(active_rows) == 0 or len(active_cols) == 0:
+        ys, xs = np.nonzero(mask)
+        if len(xs) == 0 or len(ys) == 0:
+            return None
+        return (
+            int(xs.min()),
+            int(ys.min()),
+            int(xs.max()) + 1,
+            int(ys.max()) + 1,
+        )
+
+    left = int(active_cols[0])
+    right = int(active_cols[-1]) + 1
+    top = int(active_rows[0])
+    bottom = int(active_rows[-1]) + 1
+    return left, top, right, bottom
 
 
 def crop_to_content(
@@ -178,6 +225,7 @@ def render_page(
     canvas_size: CanvasSize | None,
     grayscale: bool,
     shared_scale: float | None,
+    content_align: str,
 ) -> Image.Image:
     Image, _ = require_pillow()
 
@@ -207,10 +255,12 @@ def render_page(
         (canvas_size.width, canvas_size.height),
         background_color,
     )
-    offset = (
-        (canvas_size.width - resized.width) // 2,
-        (canvas_size.height - resized.height) // 2,
-    )
+    offset_x = (canvas_size.width - resized.width) // 2
+    if content_align == "top-center":
+        offset_y = 0
+    else:
+        offset_y = (canvas_size.height - resized.height) // 2
+    offset = (offset_x, offset_y)
     canvas.paste(resized, offset)
     return canvas
 
@@ -380,6 +430,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Optional directory to save normalized pages for inspection.",
     )
     parser.add_argument(
+        "--content-align",
+        default="top-center",
+        choices=["top-center", "center"],
+        help="How cropped content is positioned on the output page. Defaults to top-center.",
+    )
+    parser.add_argument(
         "--ocr",
         action="store_true",
         help="Run Tesseract OCR and generate a searchable PDF with a text layer.",
@@ -469,6 +525,7 @@ def process_directory(args: argparse.Namespace) -> list[Image.Image]:
             canvas_size=canvas_size,
             grayscale=args.grayscale,
             shared_scale=shared_scale,
+            content_align=args.content_align,
         )
         normalized_pages.append(rendered)
 

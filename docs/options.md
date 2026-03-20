@@ -15,6 +15,7 @@ Application settings are provided through CLI arguments.
 - `--background-threshold`: Threshold used when detecting white background for margin trimming. Lower values are more conservative; higher values remove more light background areas.
 - `--global-scale` and `--no-global-scale`: When trimming margins, keeps one shared scale factor across all pages so the visible content stays at a consistent size.
 - `--save-normalized-dir`: Optional directory where normalized page images are written for inspection before or alongside the PDF result.
+- `--content-align`: Controls how trimmed content is positioned on the final page. `top-center` is the default and keeps document tops aligned more consistently; `center` restores the classic centered layout.
 - `--ocr`: Runs Tesseract OCR and writes a searchable PDF with a text layer instead of an image-only PDF.
 - `--ocr-lang`: Tesseract language list. Defaults to `kor+eng`.
 - `--tesseract-cmd`: Tesseract executable name or path. Use this when `tesseract` is not available on your default `PATH`.

@@ -3,6 +3,8 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
+from PIL import Image, ImageDraw
+
 from scan2pdf.core import (
     CanvasSize,
     compute_uniform_scale,
@@ -16,7 +18,9 @@ from scan2pdf.core import (
 )
 from scan2pdf.cli import (
     command_exists,
+    detect_content_box,
     parse_args,
+    render_page,
     run_tesseract_ocr,
     validate_args,
 )
@@ -74,6 +78,40 @@ class GeometryTests(unittest.TestCase):
     def test_scale_dimensions_applies_shared_scale(self) -> None:
         self.assertEqual(scale_dimensions((900, 700), 1.2), (1080, 840))
 
+    def test_detect_content_box_ignores_edge_noise(self) -> None:
+        image = Image.new("RGB", (200, 300), "white")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((40, 60, 160, 240), fill="black")
+        draw.line((0, 0, 199, 0), fill="black", width=1)
+        draw.line((0, 299, 199, 299), fill="black", width=1)
+
+        self.assertEqual(
+            detect_content_box(image, background_threshold=245),
+            (40, 60, 161, 241),
+        )
+
+    def test_render_page_supports_top_center_alignment(self) -> None:
+        image = Image.new("RGB", (50, 50), "black")
+        canvas = CanvasSize(width=100, height=200)
+
+        centered = render_page(
+            image,
+            canvas_size=canvas,
+            grayscale=False,
+            shared_scale=None,
+            content_align="center",
+        )
+        top_centered = render_page(
+            image,
+            canvas_size=canvas,
+            grayscale=False,
+            shared_scale=None,
+            content_align="top-center",
+        )
+
+        self.assertEqual(centered.getpixel((10, 0)), (255, 255, 255))
+        self.assertEqual(top_centered.getpixel((10, 0)), (0, 0, 0))
+
 
 class CliTests(unittest.TestCase):
     def test_parse_args_uses_default_jpeg_quality(self) -> None:
@@ -105,6 +143,10 @@ class CliTests(unittest.TestCase):
         )
         self.assertEqual(args.ocr_lang, "eng")
         self.assertEqual(args.tesseract_cmd, "/opt/homebrew/bin/tesseract")
+
+    def test_parse_args_uses_top_center_content_alignment_by_default(self) -> None:
+        args = parse_args(["./scans", "./output/book.pdf"])
+        self.assertEqual(args.content_align, "top-center")
 
     def test_validate_args_rejects_empty_ocr_language(self) -> None:
         with TemporaryDirectory() as tmp:
