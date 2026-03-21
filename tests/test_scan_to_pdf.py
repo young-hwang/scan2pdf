@@ -42,15 +42,14 @@ class NaturalSortTests(unittest.TestCase):
             ordered = [path.name for path in iter_image_files(root)]
             self.assertEqual(ordered, ["page1.png", "page2.jpg", "page10.jpg"])
 
-    def test_iter_pdf_files_filters_and_sorts_pdf_files(self) -> None:
+    def test_iter_pdf_files_filters_and_sorts_supported_files(self) -> None:
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            for name in ["chapter10.pdf", "chapter2.pdf", "notes.txt", "chapter1.pdf"]:
+            for name in ["part10.pdf", "part2.pdf", "notes.txt", "part1.pdf"]:
                 (root / name).write_bytes(b"sample")
 
             ordered = [path.name for path in iter_pdf_files(root)]
-            self.assertEqual(ordered, ["chapter1.pdf", "chapter2.pdf", "chapter10.pdf"])
-
+            self.assertEqual(ordered, ["part1.pdf", "part2.pdf", "part10.pdf"])
 
 class GeometryTests(unittest.TestCase):
     def test_normalize_skew_angle_flattens_min_area_rect_values(self) -> None:
@@ -142,10 +141,6 @@ class CliTests(unittest.TestCase):
         args = parse_args(["./scans", "./output/book.pdf"])
         self.assertEqual(args.jpeg_quality, 85)
 
-    def test_parse_args_supports_pdf_merge_mode(self) -> None:
-        args = parse_args(["./pdfs", "./output/book.pdf", "--merge-pdfs"])
-        self.assertTrue(args.merge_pdfs)
-
     def test_parse_args_accepts_custom_jpeg_quality(self) -> None:
         args = parse_args(
             ["./scans", "./output/book.pdf", "--jpeg-quality", "72"]
@@ -176,6 +171,12 @@ class CliTests(unittest.TestCase):
         args = parse_args(["./scans", "./output/book.pdf"])
         self.assertEqual(args.content_align, "top-center")
 
+    def test_parse_args_supports_merge_subcommand(self) -> None:
+        args = parse_args(["merge", "./pdfs", "./merged.pdf"])
+        self.assertEqual(args.command, "merge")
+        self.assertEqual(args.input_dir, Path("./pdfs"))
+        self.assertEqual(args.output_pdf, Path("./merged.pdf"))
+
     def test_validate_args_rejects_empty_ocr_language(self) -> None:
         with TemporaryDirectory() as tmp:
             input_dir = Path(tmp) / "scans"
@@ -200,42 +201,6 @@ class CliTests(unittest.TestCase):
             args = parse_args([str(input_dir), "./output/book.pdf"])
             validate_args(args)
 
-    @patch("scan2pdf.cli.require_pypdf")
-    @patch("scan2pdf.cli.require_pillow")
-    @patch("scan2pdf.cli.require_cv2")
-    def test_validate_args_pdf_merge_does_not_require_image_libraries(
-        self,
-        mock_require_cv2,
-        mock_require_pillow,
-        mock_require_pypdf,
-    ) -> None:
-        with TemporaryDirectory() as tmp:
-            input_dir = Path(tmp) / "pdfs"
-            input_dir.mkdir()
-            args = parse_args([str(input_dir), "./output/book.pdf", "--merge-pdfs"])
-            validate_args(args)
-
-        mock_require_pypdf.assert_called_once()
-        mock_require_pillow.assert_not_called()
-        mock_require_cv2.assert_not_called()
-
-    @patch("scan2pdf.cli.require_pypdf")
-    def test_validate_args_rejects_ocr_with_pdf_merge(self, mock_require_pypdf) -> None:
-        with TemporaryDirectory() as tmp:
-            input_dir = Path(tmp) / "pdfs"
-            input_dir.mkdir()
-            args = parse_args(
-                [str(input_dir), "./output/book.pdf", "--merge-pdfs", "--ocr"]
-            )
-            with self.assertRaises(SystemExit) as exc:
-                validate_args(args)
-
-        self.assertEqual(
-            str(exc.exception),
-            "--ocr cannot be used together with --merge-pdfs.",
-        )
-        mock_require_pypdf.assert_called_once()
-
     @patch("scan2pdf.cli.require_pillow")
     @patch("scan2pdf.cli.require_cv2")
     def test_validate_args_requires_tesseract_for_ocr(
@@ -251,6 +216,56 @@ class CliTests(unittest.TestCase):
                 with self.assertRaises(SystemExit) as exc:
                     validate_args(args)
             self.assertIn("Tesseract", str(exc.exception))
+
+    @patch("scan2pdf.cli.require_pypdf")
+    def test_validate_args_requires_existing_merge_inputs(
+        self,
+        mock_require_pypdf,
+    ) -> None:
+        mock_require_pypdf.return_value = object(), object()
+        args = parse_args(["merge", "./missing-pdfs", "./out.pdf"])
+        with self.assertRaises(SystemExit) as exc:
+            validate_args(args)
+        self.assertIn("Input directory does not exist", str(exc.exception))
+
+    @patch("scan2pdf.cli.require_pypdf")
+    def test_validate_args_requires_at_least_two_merge_pdfs(
+        self,
+        mock_require_pypdf,
+    ) -> None:
+        mock_require_pypdf.return_value = object(), object()
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "only.pdf").write_bytes(b"%PDF-1.4\n")
+
+            args = parse_args(["merge", str(root), str(root / "out.pdf")])
+            with self.assertRaises(SystemExit) as exc:
+                validate_args(args)
+            self.assertIn("At least two PDF files are required", str(exc.exception))
+
+    @patch("scan2pdf.cli.require_pypdf")
+    def test_validate_args_rejects_non_pdf_merge_output(
+        self,
+        mock_require_pypdf,
+    ) -> None:
+        mock_require_pypdf.return_value = object(), object()
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pdf_dir = root / "pdfs"
+            pdf_dir.mkdir()
+            for name in ["a.pdf", "b.pdf"]:
+                (pdf_dir / name).write_bytes(b"%PDF-1.4\n")
+
+            args = parse_args(
+                [
+                    "merge",
+                    str(pdf_dir),
+                    str(root / "merged.txt"),
+                ]
+            )
+            with self.assertRaises(SystemExit) as exc:
+                validate_args(args)
+            self.assertIn("must end with .pdf", str(exc.exception))
 
 
 class OcrTests(unittest.TestCase):
@@ -292,28 +307,26 @@ class OcrTests(unittest.TestCase):
             )
 
 
-class PdfMergeTests(unittest.TestCase):
-    def test_merge_pdfs_combines_sorted_documents(self) -> None:
-        from pypdf import PdfReader, PdfWriter
+class MergeTests(unittest.TestCase):
+    def test_merge_pdfs_combines_pages_from_each_input(self) -> None:
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            self.skipTest("pypdf is not installed")
 
         with TemporaryDirectory() as tmp:
-            input_dir = Path(tmp) / "pdfs"
-            input_dir.mkdir()
-            output_path = Path(tmp) / "merged.pdf"
+            root = Path(tmp)
+            first_pdf = root / "first.pdf"
+            second_pdf = root / "second.pdf"
+            output_pdf = root / "merged.pdf"
 
-            for name, width in [("chapter2.pdf", 200), ("chapter1.pdf", 100)]:
-                writer = PdfWriter()
-                writer.add_blank_page(width=width, height=144)
-                with (input_dir / name).open("wb") as handle:
-                    writer.write(handle)
+            Image.new("RGB", (40, 60), "white").save(first_pdf, save_all=True)
+            Image.new("RGB", (50, 70), "black").save(second_pdf, save_all=True)
 
-            merge_pdfs(input_dir, output_path)
+            merge_pdfs([first_pdf, second_pdf], output_pdf)
 
-            reader = PdfReader(str(output_path))
-            self.assertEqual(len(reader.pages), 2)
-            self.assertEqual(float(reader.pages[0].mediabox.width), 100.0)
-            self.assertEqual(float(reader.pages[1].mediabox.width), 200.0)
-
+            merged = PdfReader(str(output_pdf))
+            self.assertEqual(len(merged.pages), 2)
 
 if __name__ == "__main__":
     unittest.main()

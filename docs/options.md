@@ -3,9 +3,9 @@
 Application settings are provided through CLI arguments.
 
 - `--version`: Prints the installed CLI version and exits.
-- `input_dir`: Source directory that contains scanned page images. When `--merge-pdfs` is used, this instead points to a directory of PDF files. Files are loaded in natural filename order.
+- `input_dir`: Source directory that contains scanned page images. Files are loaded in natural filename order.
 - `output_pdf`: Destination path for the generated PDF file.
-- `--merge-pdfs`: Merges existing PDF files from `input_dir` into `output_pdf` instead of processing images.
+- `merge`: Subcommand that merges PDFs from a directory. Use `scan2pdf merge ./pdfs output.pdf`.
 - `--page-size`: Output canvas preset. Use `A4`, `A5`, or `LETTER` for a fixed paper size, or `ORIGINAL` to keep each page at its processed image size.
 - `--dpi`: DPI used when converting paper-size presets into pixel dimensions. Higher values create larger output pages and usually increase PDF size.
 - `--jpeg-quality`: JPEG quality used when embedding page images in the PDF. Lower values reduce file size at the cost of more compression artifacts.

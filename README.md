@@ -1,7 +1,7 @@
 # scan2pdf
 
 Turn a folder of scanned images into a cleaned, consistently sized PDF.
-It can also merge multiple existing PDF files from one directory into a single PDF.
+It can also merge multiple existing PDFs into one file.
 
 ## Quick Start
 
@@ -77,20 +77,6 @@ Output:
 
 - `./output/book.pdf`: generated multi-page PDF
 
-Merge mode:
-
-```bash
-scan2pdf ./pdfs ./output/combined.pdf --merge-pdfs
-```
-
-Input:
-
-- `./pdfs`: directory containing PDF files
-
-Output:
-
-- `./output/combined.pdf`: merged PDF in natural filename order
-
 ## Common Commands
 
 Basic conversion:
@@ -157,10 +143,10 @@ scan2pdf ./scans ./output/book-ocr.pdf \
   --ocr-lang kor+eng
 ```
 
-Merge multiple PDF files from one directory:
+Merge all PDFs in a folder into one:
 
 ```bash
-scan2pdf ./pdfs ./output/combined.pdf --merge-pdfs
+scan2pdf merge ./pdfs ./combined.pdf
 ```
 
 ## Development
