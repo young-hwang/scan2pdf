@@ -67,6 +67,7 @@ python3 -m pip install ".[deskew]"
 
 `--ocr` requires:
 
+- bundled Python dependency `pypdf` from the base package install
 - system `tesseract`
 - installed Tesseract language data such as `kor` and `eng`
 
