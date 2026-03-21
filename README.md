@@ -62,6 +62,7 @@ For Korean and English OCR, install `kor` and `eng` trained data for your Tesser
 - grayscale export option
 - configurable JPEG quality for PDF page embedding
 - deterministic multi-page PDF output
+- multi-PDF merge command for already generated PDFs
 
 ## Basic Usage
 
@@ -98,6 +99,16 @@ scan2pdf ./scans ./output/book.pdf \
   --jpeg-quality 75
 ```
 
+Smaller B5 output to cut file size while keeping readable text:
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --page-size B5 \
+  --dpi 200 \
+  --grayscale \
+  --jpeg-quality 60
+```
+
 Trim white borders and keep a shared scale across pages:
 
 ```bash
@@ -132,6 +143,14 @@ scan2pdf ./scans ./output/book.pdf \
   --ocr-lang kor+eng
 ```
 
+If Tesseract is not on your default `PATH`, point the CLI at it directly:
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --ocr \
+  --tesseract-cmd /opt/homebrew/bin/tesseract
+```
+
 Combine trimming, normalized-page export, and OCR:
 
 ```bash
@@ -147,6 +166,12 @@ Merge all PDFs in a folder into one:
 
 ```bash
 scan2pdf merge ./pdfs ./combined.pdf
+```
+
+Disable deskew when OpenCV is not installed or when the scans are already straight:
+
+```bash
+scan2pdf ./scans ./output/book.pdf --no-deskew
 ```
 
 ## Development

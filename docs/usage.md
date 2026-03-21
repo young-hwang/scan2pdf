@@ -41,6 +41,18 @@ scan2pdf ./scans ./output/book.pdf \
 
 `--save-normalized-dir` writes processed page images for inspection, but it does not change the generated PDF into an OCR PDF.
 
+## Smaller B5 Output
+
+```bash
+scan2pdf ./scans ./output/book.pdf \
+  --page-size B5 \
+  --dpi 200 \
+  --grayscale \
+  --jpeg-quality 60
+```
+
+This is a good starting point when you want smaller output files without dropping to very low JPEG quality.
+
 ## Margin Trimming
 
 ```bash
@@ -94,6 +106,8 @@ scan2pdf ./scans ./output/book.pdf \
   --tesseract-cmd /opt/homebrew/bin/tesseract
 ```
 
+`pypdf` is already installed with the package. For OCR mode, the extra system dependency is Tesseract plus the language data you want to use.
+
 ## Configuration
 
 See [Options Reference](options.md).
@@ -102,7 +116,7 @@ See [Options Reference](options.md).
 
 ```bash
 scan2pdf ./scans ./output/book.pdf \
-  --page-size A4 \
+  --page-size B5 \
   --dpi 200 \
   --jpeg-quality 80 \
   --orientation portrait \

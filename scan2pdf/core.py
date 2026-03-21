@@ -15,13 +15,12 @@ SUPPORTED_EXTENSIONS = {
     ".webp",
 }
 
-SUPPORTED_PDF_EXTENSIONS = {
-    ".pdf",
-}
+SUPPORTED_PDF_EXTENSIONS = {".pdf"}
 
 PAGE_SIZE_INCHES = {
     "A4": (8.27, 11.69),
     "A5": (5.83, 8.27),
+    "B5": (6.93, 9.84),
     "LETTER": (8.5, 11.0),
 }
 
@@ -56,8 +55,6 @@ def iter_pdf_files(input_dir: Path) -> list[Path]:
         if path.is_file() and path.suffix.lower() in SUPPORTED_PDF_EXTENSIONS
     ]
     return sorted(files, key=lambda path: natural_sort_key(path.name))
-
-
 def normalize_skew_angle(raw_angle: float) -> float:
     angle = raw_angle
     if angle < -45.0:

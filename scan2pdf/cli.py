@@ -521,7 +521,7 @@ def parse_convert_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--page-size",
         default="A4",
-        choices=["A4", "A5", "LETTER", "ORIGINAL"],
+        choices=["A4", "A5", "B5", "LETTER", "ORIGINAL"],
         help="Output canvas preset. Defaults to A4.",
     )
     parser.add_argument(

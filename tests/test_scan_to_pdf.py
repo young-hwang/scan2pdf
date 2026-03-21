@@ -75,6 +75,13 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual(portrait, CanvasSize(width=2481, height=3507))
         self.assertEqual(landscape, CanvasSize(width=3507, height=2481))
 
+    def test_page_size_to_pixels_supports_b5(self) -> None:
+        portrait = page_size_to_pixels("B5", dpi=300, orientation="portrait")
+        landscape = page_size_to_pixels("B5", dpi=300, orientation="landscape")
+
+        self.assertEqual(portrait, CanvasSize(width=2079, height=2952))
+        self.assertEqual(landscape, CanvasSize(width=2952, height=2079))
+
     def test_original_page_size_returns_none(self) -> None:
         self.assertIsNone(page_size_to_pixels("ORIGINAL", dpi=300, orientation="portrait"))
 
