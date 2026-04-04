@@ -37,6 +37,15 @@ public class Scan2PdfCliCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"--stretch"}, defaultValue = "false")
     private boolean stretch;
 
+    @CommandLine.Option(names = {"--deskew"}, defaultValue = "false", description = "Deskew text-heavy scanned images before PDF/OCR")
+    private boolean deskew;
+
+    @CommandLine.Option(
+            names = {"--deskew-temp-dir"},
+            description = "Directory for intermediate deskew images. Defaults to ./.img2pdf-temp"
+    )
+    private Path deskewTempDir;
+
     @CommandLine.Option(names = {"--ocr"}, defaultValue = "false")
     private boolean ocrEnabled;
 
@@ -62,7 +71,7 @@ public class Scan2PdfCliCommand implements Callable<Integer> {
                     inputs,
                     outputPdf,
                     ocrTextOutput,
-                    new PdfOptions(pageSize, !stretch),
+                    new PdfOptions(pageSize, !stretch, deskew, deskewTempDir),
                     new OcrOptions(ocrEnabled, language, tessdataPath, dpi, psm));
 
             var result = useCase.handle(request);
