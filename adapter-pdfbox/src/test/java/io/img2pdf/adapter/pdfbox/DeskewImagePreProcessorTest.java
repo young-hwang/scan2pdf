@@ -256,14 +256,17 @@ class DeskewImagePreProcessorTest {
     }
 
     private Path resolveSampleImagePath() {
-        Path moduleRelative = Path.of("..", "images", "Scan 100.jpeg").normalize();
-        if (Files.exists(moduleRelative)) {
-            return moduleRelative;
-        }
+        Path[] candidates = new Path[] {
+                Path.of("..", "scans", "Scan 100.jpeg").normalize(),
+                Path.of("scans", "Scan 100.jpeg"),
+                Path.of("..", "images", "Scan 100.jpeg").normalize(),
+                Path.of("images", "Scan 100.jpeg")
+        };
 
-        Path rootRelative = Path.of("images", "Scan 100.jpeg");
-        if (Files.exists(rootRelative)) {
-            return rootRelative;
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate;
+            }
         }
 
         throw new IllegalStateException("Sample image not found for preprocess test.");
