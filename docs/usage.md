@@ -54,6 +54,19 @@ Write recognized text to a file as well:
   --crop
 ```
 
+When crop is enabled and you render onto a fixed page size, the PDF scales each page from the cropped content area instead of the original paper bounds. This keeps text size more consistent when A4 and A5 scans are mixed together.
+
+If some images were scanned on a larger bed such as A4 but should be treated as A5 pages, add `--crop-to-page-size` together with `--page-size` and `--dpi`. This crops to the physical target paper window before the PDF layout step.
+
+```bash
+./cli/build/install/cli/bin/img2pdf-cli ./images \
+  --output ./output/book.pdf \
+  --page-size A5 \
+  --dpi 300 \
+  --crop \
+  --crop-to-page-size
+```
+
 Use a stable temporary directory for intermediate deskew files:
 
 ```bash

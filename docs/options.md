@@ -8,6 +8,7 @@ Application settings are provided through CLI arguments.
 - `--stretch`: Disable aspect-ratio preservation and stretch source images to the page bounds.
 - `--deskew`: Run scan deskew before PDF generation or OCR.
 - `--crop`: Crop empty outer margins after optional deskew. Use `--crop=false` to keep the full image bounds.
+- `--crop-to-page-size`: When `--crop` is enabled for a fixed page size, crop larger scans down to the target paper window using `--dpi`.
 - `--deskew-temp-dir`: Directory for intermediate deskew images. Defaults to `./.img2pdf-temp` inside the current working directory when needed.
 - `--ocr`: Enable Tesseract OCR.
 - `--lang`: OCR language list. Defaults to `eng`.

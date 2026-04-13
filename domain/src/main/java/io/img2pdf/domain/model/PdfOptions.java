@@ -7,6 +7,7 @@ public record PdfOptions(
     boolean keepAspectRatio,
     boolean deskew,
     boolean crop,
+    boolean cropToPageSize,
     Path deskewTempDir,
     Integer targetDpi,
     ImageCompression imageCompression,

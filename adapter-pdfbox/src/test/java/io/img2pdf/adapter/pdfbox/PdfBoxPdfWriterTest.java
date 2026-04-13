@@ -17,31 +17,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PdfBoxPdfWriterTest {
     @Test
-    void resolvePlacementPreservesOriginalScaleForCroppedImages() {
+    void resolvePlacementCentersCroppedImagesUsingContentScale() {
         PdfBoxPdfWriter writer = new PdfBoxPdfWriter();
         BufferedImage croppedImage = new BufferedImage(800, 1000, BufferedImage.TYPE_INT_RGB);
-        PdfOptions options = new PdfOptions(PageSize.A5, true, false, true, null, null, ImageCompression.JPEG, 75);
+        PdfOptions options = new PdfOptions(PageSize.A5, true, false, true, false, null, null, ImageCompression.JPEG, 75);
         ProcessedImageLayoutRegistry.ProcessedImageLayout layout =
                 new ProcessedImageLayoutRegistry.ProcessedImageLayout(1000, 1400, 100, 150);
 
         PdfBoxPdfWriter.ImagePlacement placement = writer.resolvePlacement(PDRectangle.A5, croppedImage, options, layout);
 
-        float expectedScale = Math.min(PDRectangle.A5.getWidth() / 1000f, PDRectangle.A5.getHeight() / 1400f);
+        float expectedScale = Math.min(PDRectangle.A5.getWidth() / 800f, PDRectangle.A5.getHeight() / 1000f);
         assertEquals(800f * expectedScale, placement.drawWidth(), 0.01f);
         assertEquals(1000f * expectedScale, placement.drawHeight(), 0.01f);
-        assertEquals(((PDRectangle.A5.getWidth() - (1000f * expectedScale)) / 2f) + (100f * expectedScale), placement.x(), 0.01f);
-        assertEquals(
-                ((PDRectangle.A5.getHeight() - (1400f * expectedScale)) / 2f) + ((1400f - 150f - 1000f) * expectedScale),
-                placement.y(),
-                0.01f
-        );
+        assertEquals((PDRectangle.A5.getWidth() - (800f * expectedScale)) / 2f, placement.x(), 0.01f);
+        assertEquals((PDRectangle.A5.getHeight() - (1000f * expectedScale)) / 2f, placement.y(), 0.01f);
     }
 
     @Test
     void resolvePlacementMatchesPreviousBehaviorWithoutCropMetadata() {
         PdfBoxPdfWriter writer = new PdfBoxPdfWriter();
         BufferedImage image = new BufferedImage(800, 1000, BufferedImage.TYPE_INT_RGB);
-        PdfOptions options = new PdfOptions(PageSize.A5, true, false, false, null, null, ImageCompression.JPEG, 75);
+        PdfOptions options = new PdfOptions(PageSize.A5, true, false, false, false, null, null, ImageCompression.JPEG, 75);
         ProcessedImageLayoutRegistry.ProcessedImageLayout layout =
                 new ProcessedImageLayoutRegistry.ProcessedImageLayout(800, 1000, 0, 0);
 
@@ -72,14 +68,14 @@ class PdfBoxPdfWriterTest {
         writer.write(
                 java.util.List.of(imagePath),
                 losslessPdf,
-                new PdfOptions(PageSize.A4, true, false, false, null, null, ImageCompression.LOSSLESS, 75)
+                new PdfOptions(PageSize.A4, true, false, false, false, null, null, ImageCompression.LOSSLESS, 75)
         );
 
         Path compressedPdf = tempDir.resolve("compressed.pdf");
         writer.write(
                 java.util.List.of(imagePath),
                 compressedPdf,
-                new PdfOptions(PageSize.A4, true, false, false, null, 120, ImageCompression.JPEG, 40)
+                new PdfOptions(PageSize.A4, true, false, false, false, null, 120, ImageCompression.JPEG, 40)
         );
 
         assertTrue(java.nio.file.Files.size(compressedPdf) < java.nio.file.Files.size(losslessPdf));

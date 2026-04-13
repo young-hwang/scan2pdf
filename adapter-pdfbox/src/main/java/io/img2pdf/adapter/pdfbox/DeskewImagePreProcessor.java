@@ -1,6 +1,7 @@
 package io.img2pdf.adapter.pdfbox;
 
 import io.img2pdf.application.outbound.ImagePreProcessorPort;
+import io.img2pdf.domain.model.PageSize;
 import io.img2pdf.domain.model.PdfOptions;
 
 import javax.imageio.ImageIO;
@@ -55,7 +56,7 @@ public class DeskewImagePreProcessor implements ImagePreProcessorPort {
             }
             if (options.crop()) {
                 BufferedImage imageBeforeCrop = processedImage;
-                CropResult cropResult = cropImageToContent(imageBeforeCrop);
+                CropResult cropResult = cropImage(imageBeforeCrop, options);
                 processedImage = cropResult.image();
                 if (!cropResult.bounds().isEmpty()) {
                     ProcessedImageLayoutRegistry.register(
@@ -216,7 +217,7 @@ public class DeskewImagePreProcessor implements ImagePreProcessorPort {
         );
     }
 
-    private CropResult cropImageToContent(BufferedImage source) {
+    private CropResult cropImage(BufferedImage source, PdfOptions options) {
         ContentBounds bounds = findContentBounds(toBinaryImage(source));
         if (bounds.isEmpty()) {
             return new CropResult(source, bounds);
@@ -225,7 +226,13 @@ public class DeskewImagePreProcessor implements ImagePreProcessorPort {
         int paddingX = resolveContentPadding(source.getWidth());
         int paddingY = resolveContentPadding(source.getHeight());
         ContentBounds expandedBounds = expandBounds(bounds, source, paddingX, paddingY);
-        return new CropResult(cropToContentBounds(source, expandedBounds), expandedBounds);
+        ContentBounds cropBounds = options.cropToPageSize()
+                ? resolvePageSizedCropBounds(expandedBounds, source, options)
+                : expandedBounds;
+        if (cropBounds.isEmpty()) {
+            cropBounds = expandedBounds;
+        }
+        return new CropResult(cropToContentBounds(source, cropBounds), cropBounds);
     }
 
     private BufferedImage cropToContentBounds(BufferedImage source, ContentBounds bounds) {
@@ -246,6 +253,92 @@ public class DeskewImagePreProcessor implements ImagePreProcessorPort {
         int right = Math.min(source.getWidth() - 1, bounds.maxX + paddingX);
         int bottom = Math.min(source.getHeight() - 1, bounds.maxY + paddingY);
         return new ContentBounds(left, top, right, bottom);
+    }
+
+    private ContentBounds resolvePageSizedCropBounds(
+            ContentBounds contentBounds,
+            BufferedImage source,
+            PdfOptions options
+    ) {
+        if (options.pageSize() == null || options.pageSize() == PageSize.ORIGINAL) {
+            return contentBounds;
+        }
+        if (options.targetDpi() == null) {
+            return contentBounds;
+        }
+
+        PagePixelSize targetPagePixels = resolveTargetPagePixels(options);
+        if (targetPagePixels == null) {
+            return contentBounds;
+        }
+
+        if (targetPagePixels.width() >= source.getWidth() || targetPagePixels.height() >= source.getHeight()) {
+            return contentBounds;
+        }
+        if (contentBounds.width() > targetPagePixels.width() || contentBounds.height() > targetPagePixels.height()) {
+            return contentBounds;
+        }
+
+        int left = resolveAxisStart(
+                contentBounds.minX,
+                contentBounds.maxX,
+                targetPagePixels.width(),
+                source.getWidth()
+        );
+        int top = resolveAxisStart(
+                contentBounds.minY,
+                contentBounds.maxY,
+                targetPagePixels.height(),
+                source.getHeight()
+        );
+
+        return new ContentBounds(
+                left,
+                top,
+                left + targetPagePixels.width() - 1,
+                top + targetPagePixels.height() - 1
+        );
+    }
+
+    private int resolveAxisStart(int minContent, int maxContent, int targetLength, int sourceLength) {
+        int minStart = Math.max(0, maxContent - targetLength + 1);
+        int maxStart = Math.min(minContent, sourceLength - targetLength);
+        if (minStart > maxStart) {
+            return Math.max(0, Math.min(sourceLength - targetLength, minContent));
+        }
+
+        int desired = (int) Math.round(((minContent + maxContent + 1) - targetLength) / 2.0);
+        return Math.max(minStart, Math.min(maxStart, desired));
+    }
+
+    private PagePixelSize resolveTargetPagePixels(PdfOptions options) {
+        double widthInches;
+        double heightInches;
+        switch (options.pageSize()) {
+            case A4 -> {
+                widthInches = 210.0 / 25.4;
+                heightInches = 297.0 / 25.4;
+            }
+            case A5 -> {
+                widthInches = 148.0 / 25.4;
+                heightInches = 210.0 / 25.4;
+            }
+            case LETTER -> {
+                widthInches = 8.5;
+                heightInches = 11.0;
+            }
+            case ORIGINAL -> {
+                return null;
+            }
+            default -> {
+                return null;
+            }
+        }
+
+        int dpi = options.targetDpi();
+        int width = Math.max(1, (int) Math.round(widthInches * dpi));
+        int height = Math.max(1, (int) Math.round(heightInches * dpi));
+        return new PagePixelSize(width, height);
     }
 
     private ContentBounds findContentBounds(BufferedImage source) {
@@ -396,5 +489,8 @@ public class DeskewImagePreProcessor implements ImagePreProcessorPort {
     }
 
     private record CropResult(BufferedImage image, ContentBounds bounds) {
+    }
+
+    private record PagePixelSize(int width, int height) {
     }
 }

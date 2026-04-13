@@ -25,6 +25,7 @@ class Scan2PdfCliCommandTest {
         assertEquals(0, exitCode);
         assertNotNull(useCase.request);
         assertTrue(useCase.request.pdfOptions().crop());
+        assertFalse(useCase.request.pdfOptions().cropToPageSize());
         assertFalse(useCase.request.pdfOptions().deskew());
         assertEquals(ImageCompression.JPEG, useCase.request.pdfOptions().imageCompression());
         assertEquals(75, useCase.request.pdfOptions().jpegQuality());
@@ -41,6 +42,26 @@ class Scan2PdfCliCommandTest {
         assertNotNull(useCase.request);
         assertFalse(useCase.request.pdfOptions().crop());
         assertTrue(useCase.request.pdfOptions().deskew());
+    }
+
+    @Test
+    void callMapsCropToPageSizeOption() {
+        CapturingUseCase useCase = new CapturingUseCase();
+        Scan2PdfCliCommand command = new Scan2PdfCliCommand(useCase);
+
+        int exitCode = new CommandLine(command).execute(
+                "scan-1.jpeg",
+                "--output", "out.pdf",
+                "--page-size", "A5",
+                "--dpi", "300",
+                "--crop-to-page-size"
+        );
+
+        assertEquals(0, exitCode);
+        assertNotNull(useCase.request);
+        assertTrue(useCase.request.pdfOptions().crop());
+        assertTrue(useCase.request.pdfOptions().cropToPageSize());
+        assertEquals(Integer.valueOf(300), useCase.request.pdfOptions().targetDpi());
     }
 
     @Test

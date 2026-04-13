@@ -8,7 +8,7 @@ import io.img2pdf.application.service.FileCollector;
 import picocli.CommandLine;
 
 public class Main {
-    static void main(String[] args) {
+    public static void main(String[] args) {
 
         var pdfWriter = new PdfBoxPdfWriter();
         var imagePreProcessor = new DeskewImagePreProcessor();

@@ -9,7 +9,12 @@ import io.img2pdf.domain.model.OcrOptions;
 import io.img2pdf.domain.model.PageSize;
 import io.img2pdf.domain.model.PdfOptions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConvertImagesToPdfServiceTest {
+
+    @TempDir
+    Path tempDir;
 
     @Test
     void handlePreprocessesImagesConcurrentlyWhilePreservingInputOrder() {
@@ -67,7 +75,7 @@ class ConvertImagesToPdfServiceTest {
                 inputs,
                 Path.of("out.pdf"),
                 null,
-                new PdfOptions(PageSize.ORIGINAL, true, true, true, null, null, ImageCompression.JPEG, 75),
+                new PdfOptions(PageSize.ORIGINAL, true, true, true, false, null, null, ImageCompression.JPEG, 75),
                 new OcrOptions(false, "eng", null, null, null)
         ));
 
@@ -110,12 +118,28 @@ class ConvertImagesToPdfServiceTest {
                 inputs,
                 Path.of("out.pdf"),
                 null,
-                new PdfOptions(PageSize.ORIGINAL, true, false, false, null, null, ImageCompression.JPEG, 75),
+                new PdfOptions(PageSize.ORIGINAL, true, false, false, false, null, null, ImageCompression.JPEG, 75),
                 new OcrOptions(false, "eng", null, null, null)
         ));
 
         assertEquals(0, preprocessCalls.get());
         assertEquals(inputs, pdfWriter.imagePaths);
+    }
+
+    @Test
+    void collectImagesSkipsNonImageFilesWithImageExtensions() throws IOException {
+        Path validImage = tempDir.resolve("scan-1.jpeg");
+        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
+        ImageIO.write(image, "jpeg", validImage.toFile());
+
+        Path invalidImage = tempDir.resolve("scan-2.jpeg");
+        Files.writeString(invalidImage, "not an image");
+
+        FileCollector fileCollector = new FileCollector();
+
+        List<Path> collected = fileCollector.collectImages(List.of(tempDir));
+
+        assertEquals(List.of(validImage), collected);
     }
 
     private static final class StubFileCollector extends FileCollector {

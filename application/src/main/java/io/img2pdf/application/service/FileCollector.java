@@ -1,5 +1,7 @@
 package io.img2pdf.application.service;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,12 +35,24 @@ public class FileCollector {
 
     private boolean isSupportedImage(Path path) {
         var name = path.getFileName().toString().toLowerCase();
-        return name.endsWith(".png")
+        boolean supportedExtension = name.endsWith(".png")
                 || name.endsWith(".jpg")
                 || name.endsWith(".jpeg")
                 || name.endsWith(".bmp")
                 || name.endsWith(".gif")
                 || name.endsWith(".tif")
                 || name.endsWith(".tiff");
+        if (!supportedExtension) {
+            return false;
+        }
+
+        try (ImageInputStream stream = ImageIO.createImageInputStream(path.toFile())) {
+            if (stream == null) {
+                return false;
+            }
+            return ImageIO.getImageReaders(stream).hasNext();
+        } catch (IOException e) {
+            return false;
+        }
     }
 }

@@ -57,7 +57,7 @@ class DeskewImagePreProcessorTest {
         DeskewImagePreProcessor preProcessor = new DeskewImagePreProcessor();
         Path sourceImage = writeImageToTempFile(createStraightSparseTitlePageImage(), "sparse-title-page");
         Path outputDir = createTestDirectory("sparse");
-        PdfOptions options = new PdfOptions(PageSize.A5, true, true, true, outputDir, null, ImageCompression.JPEG, 75);
+        PdfOptions options = new PdfOptions(PageSize.A5, true, true, true, false, outputDir, null, ImageCompression.JPEG, 75);
 
         Path outputFile = preProcessor.preprocess(sourceImage, options);
 
@@ -92,7 +92,7 @@ class DeskewImagePreProcessorTest {
         DeskewImagePreProcessor preProcessor = new DeskewImagePreProcessor();
         Path sourceImage = resolveSampleImagePath();
         Path outputDir = createTestDirectory("configured");
-        PdfOptions options = new PdfOptions(PageSize.A5, true, true, true, outputDir, null, ImageCompression.JPEG, 75);
+        PdfOptions options = new PdfOptions(PageSize.A5, true, true, true, false, outputDir, null, ImageCompression.JPEG, 75);
 
         Path outputFile = preProcessor.preprocess(sourceImage, options);
 
@@ -119,7 +119,7 @@ class DeskewImagePreProcessorTest {
         DeskewImagePreProcessor preProcessor = new DeskewImagePreProcessor();
         Path sourceImage = resolveSampleImagePath();
         Path defaultOutputDir = Path.of(".img2pdf-temp").toAbsolutePath().normalize();
-        PdfOptions options = new PdfOptions(PageSize.A5, true, true, true, null, null, ImageCompression.JPEG, 75);
+        PdfOptions options = new PdfOptions(PageSize.A5, true, true, true, false, null, null, ImageCompression.JPEG, 75);
 
         Path outputFile = preProcessor.preprocess(sourceImage, options);
 
@@ -141,7 +141,7 @@ class DeskewImagePreProcessorTest {
         DeskewImagePreProcessor preProcessor = new DeskewImagePreProcessor();
         Path sourceImage = writeImageToTempFile(createStraightSparseTitlePageImage(), "no-crop");
         Path outputDir = createTestDirectory("no-crop");
-        PdfOptions options = new PdfOptions(PageSize.A5, true, false, false, outputDir, null, ImageCompression.JPEG, 75);
+        PdfOptions options = new PdfOptions(PageSize.A5, true, false, false, false, outputDir, null, ImageCompression.JPEG, 75);
 
         Path outputFile = preProcessor.preprocess(sourceImage, options);
 
@@ -158,7 +158,7 @@ class DeskewImagePreProcessorTest {
         DeskewImagePreProcessor preProcessor = new DeskewImagePreProcessor();
         Path sourceImage = writeImageToTempFile(createStraightSparseTitlePageImage(), "crop-only");
         Path outputDir = createTestDirectory("crop-only");
-        PdfOptions options = new PdfOptions(PageSize.A5, true, false, true, outputDir, null, ImageCompression.JPEG, 75);
+        PdfOptions options = new PdfOptions(PageSize.A5, true, false, true, false, outputDir, null, ImageCompression.JPEG, 75);
 
         Path outputFile = preProcessor.preprocess(sourceImage, options);
 
@@ -166,6 +166,46 @@ class DeskewImagePreProcessorTest {
             BufferedImage processed = javax.imageio.ImageIO.read(outputFile.toFile());
             assertTrue(processed.getWidth() < 1000);
             assertTrue(processed.getHeight() < 1400);
+        } finally {
+            Files.deleteIfExists(outputFile);
+            Files.deleteIfExists(sourceImage);
+            Files.deleteIfExists(outputDir);
+        }
+    }
+
+    @Test
+    void preprocessCanCropLargeScanToA5PageWindow() throws IOException {
+        DeskewImagePreProcessor preProcessor = new DeskewImagePreProcessor();
+        Path sourceImage = writeImageToTempFile(createA4ScanWithCenteredA5Content(), "crop-a5-window");
+        Path outputDir = createTestDirectory("crop-a5-window");
+        PdfOptions options = new PdfOptions(PageSize.A5, true, false, true, true, outputDir, 300, ImageCompression.JPEG, 75);
+
+        Path outputFile = preProcessor.preprocess(sourceImage, options);
+
+        try {
+            BufferedImage processed = javax.imageio.ImageIO.read(outputFile.toFile());
+            assertEquals(1748, processed.getWidth());
+            assertEquals(2480, processed.getHeight());
+        } finally {
+            Files.deleteIfExists(outputFile);
+            Files.deleteIfExists(sourceImage);
+            Files.deleteIfExists(outputDir);
+        }
+    }
+
+    @Test
+    void preprocessKeepsA5PageWindowAfterDeskew() throws IOException {
+        DeskewImagePreProcessor preProcessor = new DeskewImagePreProcessor();
+        Path sourceImage = writeImageToTempFile(rotate(createA4ScanWithCenteredA5Content(), 1.8), "deskew-crop-a5-window");
+        Path outputDir = createTestDirectory("deskew-crop-a5-window");
+        PdfOptions options = new PdfOptions(PageSize.A5, true, true, true, true, outputDir, 300, ImageCompression.JPEG, 75);
+
+        Path outputFile = preProcessor.preprocess(sourceImage, options);
+
+        try {
+            BufferedImage processed = javax.imageio.ImageIO.read(outputFile.toFile());
+            assertEquals(1748, processed.getWidth());
+            assertEquals(2480, processed.getHeight());
         } finally {
             Files.deleteIfExists(outputFile);
             Files.deleteIfExists(sourceImage);
@@ -227,6 +267,23 @@ class DeskewImagePreProcessorTest {
         graphics.drawString("Generative AI System Design", 290, 210);
         graphics.setFont(graphics.getFont().deriveFont(26f));
         graphics.drawString("Interview", 425, 260);
+        graphics.dispose();
+        return image;
+    }
+
+    private BufferedImage createA4ScanWithCenteredA5Content() {
+        BufferedImage image = new BufferedImage(2480, 3508, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+        graphics.setColor(Color.BLACK);
+
+        int pageLeft = (image.getWidth() - 1748) / 2;
+        int pageTop = (image.getHeight() - 2480) / 2;
+        for (int y = pageTop + 220; y < pageTop + 2140; y += 72) {
+            graphics.fillRect(pageLeft + 170, y, 1180, 10);
+        }
+
         graphics.dispose();
         return image;
     }

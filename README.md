@@ -28,6 +28,8 @@ For ad hoc execution during development, you can also run through Gradle:
 - fixed page-size output with optional aspect-ratio preservation
 - optional deskew before PDF generation
 - optional crop of empty scan margins
+- cropped scans are scaled from detected content bounds so mixed A4/A5 inputs keep more consistent text size
+- optional page-sized crop window for larger-bed scans when `--page-size` and `--dpi` are fixed
 - optional Tesseract OCR
 - configurable JPEG or lossless image embedding
 - optional OCR text export
@@ -66,6 +68,17 @@ Deskew and crop margins while keeping intermediate files under a fixed directory
   --deskew \
   --crop \
   --deskew-temp-dir ./.img2pdf-temp
+```
+
+Crop A4-bed scans down to an A5 page window before PDF generation:
+
+```bash
+./cli/build/install/cli/bin/img2pdf-cli ./images \
+  --output ./output/book.pdf \
+  --page-size A5 \
+  --dpi 300 \
+  --crop \
+  --crop-to-page-size
 ```
 
 Use lossless image embedding:

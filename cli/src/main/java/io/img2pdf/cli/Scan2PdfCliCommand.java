@@ -51,6 +51,13 @@ public class Scan2PdfCliCommand implements Callable<Integer> {
     private boolean crop;
 
     @CommandLine.Option(
+            names = {"--crop-to-page-size"},
+            defaultValue = "false",
+            description = "When crop is enabled for a fixed page size, crop larger scans down to the target paper window using --dpi."
+    )
+    private boolean cropToPageSize;
+
+    @CommandLine.Option(
             names = {"--deskew-temp-dir"},
             description = "Directory for intermediate deskew images. Defaults to ./.img2pdf-temp"
     )
@@ -95,7 +102,7 @@ public class Scan2PdfCliCommand implements Callable<Integer> {
                     inputs,
                     outputPdf,
                     ocrTextOutput,
-                    new PdfOptions(pageSize, !stretch, deskew, crop, deskewTempDir, dpi, imageCompression, jpegQuality),
+                    new PdfOptions(pageSize, !stretch, deskew, crop, cropToPageSize, deskewTempDir, dpi, imageCompression, jpegQuality),
                     new OcrOptions(ocrEnabled, language, tessdataPath, dpi, psm));
 
             var result = useCase.handle(request);

@@ -77,19 +77,29 @@ public class PdfBoxPdfWriter implements PdfWriterPort {
             return new ImagePlacement(pageWidth, pageHeight, 0, 0);
         }
 
-        float referenceWidth = layout.originalWidth();
-        float referenceHeight = layout.originalHeight();
+        boolean cropped = isCropped(image, layout);
+        float referenceWidth = cropped ? imageWidth : layout.originalWidth();
+        float referenceHeight = cropped ? imageHeight : layout.originalHeight();
         float widthScale = pageWidth / referenceWidth;
         float heightScale = pageHeight / referenceHeight;
         float scale = Math.min(widthScale, heightScale);
 
         float drawWidth = imageWidth * scale;
         float drawHeight = imageHeight * scale;
-        float x = (pageWidth - (referenceWidth * scale)) / 2f + (layout.offsetX() * scale);
-        float y = (pageHeight - (referenceHeight * scale)) / 2f
-                + ((referenceHeight - layout.offsetY() - imageHeight) * scale);
+        float x = (pageWidth - drawWidth) / 2f;
+        float y = (pageHeight - drawHeight) / 2f;
 
         return new ImagePlacement(drawWidth, drawHeight, x, y);
+    }
+
+    private boolean isCropped(
+            BufferedImage image,
+            ProcessedImageLayoutRegistry.ProcessedImageLayout layout
+    ) {
+        return image.getWidth() != layout.originalWidth()
+                || image.getHeight() != layout.originalHeight()
+                || layout.offsetX() != 0
+                || layout.offsetY() != 0;
     }
 
     private PDRectangle resolvePageSize(
