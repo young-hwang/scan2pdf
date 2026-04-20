@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- JDK 17 or newer
+- JDK 21
 - Gradle wrapper support from this repository
 - `tesseract` on `PATH` if you want OCR
 

@@ -1,7 +1,14 @@
 .DS_Store
 .venv/
+# Root and module build outputs
 build/
+**/build/
+bin/
+**/bin/
+
+# Local runtime / generated data
 .img2pdf-temp/
+**/.img2pdf-temp/
 output/
 scans/
 .gradle/

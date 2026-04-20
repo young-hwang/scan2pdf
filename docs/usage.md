@@ -9,10 +9,12 @@ It can optionally deskew scans, crop empty margins, and run Tesseract OCR.
 
 See [Install Guide](install.md).
 
+The project is built and tested against JDK 21.
+
 ## Basic Usage
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images --output ./output/book.pdf
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images --output ./output/book.pdf
 ```
 
 By default this produces an image-only PDF.
@@ -20,7 +22,7 @@ By default this produces an image-only PDF.
 ## OCR
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --ocr \
   --lang kor+eng
@@ -29,7 +31,7 @@ By default this produces an image-only PDF.
 If your trained data is stored outside the default location:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --ocr \
   --lang kor+eng \
@@ -39,7 +41,7 @@ If your trained data is stored outside the default location:
 Write recognized text to a file as well:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --ocr \
   --ocr-text-out ./output/book.txt
@@ -48,7 +50,7 @@ Write recognized text to a file as well:
 ## Deskew and Crop
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --deskew \
   --crop
@@ -59,7 +61,7 @@ When crop is enabled and you render onto a fixed page size, the PDF scales each 
 If some images were scanned on a larger bed such as A4 but should be treated as A5 pages, add `--crop-to-page-size` together with `--page-size` and `--dpi`. This crops to the physical target paper window before the PDF layout step.
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --page-size A5 \
   --dpi 300 \
@@ -67,10 +69,24 @@ If some images were scanned on a larger bed such as A4 but should be treated as 
   --crop-to-page-size
 ```
 
+For the repository's `scans` folder with A5 output, JPEG quality 75, deskew, and crop:
+
+```bash
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./scans \
+  --output ./output/scans-a5-dpi300-q75-deskew.pdf \
+  --page-size A5 \
+  --dpi 300 \
+  --image-compression JPEG \
+  --jpeg-quality 75 \
+  --deskew \
+  --crop \
+  --crop-to-page-size
+```
+
 Use a stable temporary directory for intermediate deskew files:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --deskew \
   --deskew-temp-dir ./.img2pdf-temp
@@ -81,7 +97,7 @@ Use a stable temporary directory for intermediate deskew files:
 Keep each source image at its processed size:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --page-size ORIGINAL
 ```
@@ -89,7 +105,7 @@ Keep each source image at its processed size:
 Render onto a fixed paper size:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --page-size LETTER \
   --dpi 300
@@ -98,7 +114,7 @@ Render onto a fixed paper size:
 Disable aspect-ratio preservation if you explicitly want stretch-to-page behavior:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --page-size A4 \
   --stretch
@@ -109,7 +125,7 @@ Disable aspect-ratio preservation if you explicitly want stretch-to-page behavio
 JPEG with lower quality for smaller files:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --image-compression JPEG \
   --jpeg-quality 60
@@ -118,7 +134,7 @@ JPEG with lower quality for smaller files:
 Lossless embedding:
 
 ```bash
-./cli/build/install/cli/bin/img2pdf-cli ./images \
+./cli/build/install/img2pdf-cli/bin/img2pdf-cli ./images \
   --output ./output/book.pdf \
   --image-compression LOSSLESS
 ```
